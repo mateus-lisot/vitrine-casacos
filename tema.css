@@ -1,0 +1,16 @@
+/* tema.css — aparência da vitrine Miralis.
+   Suba este arquivo na mesma pasta do index.html. Pode editar à mão ou usar o painel (ícone de paleta)
+   e colar aqui o CSS gerado. Valores de --card-a e --buy-a: 0 = vidro totalmente transparente, 1 = opaco. */
+:root{
+  --hdr: #ffffff;
+  --bg-a: #f8f6f2;
+  --bg-b: #e2dcd4;
+  --txt: #221b1c;
+  --card: #ffffff;
+  --card-a: .38;
+  --buy-a: .62;
+  --card-blur: 22px;
+  --card-line: .9;
+  --wine: #a8563e;
+  --flor: .15;
+}
