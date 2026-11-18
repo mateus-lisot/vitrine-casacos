@@ -6,13 +6,12 @@
   --bg-a: #f8f6f2;
   --bg-b: #e2dcd4;
   --txt: #221b1c;
-  --card: #c0c0c0;
+  --card: #ffffff;
   --card-a: .38;
   --buy-a: .62;
   --card-blur: 22px;
   --card-line: .9;
   --wine: #a8563e;
   --flor: .15;
+  --zap: #25d366; /* verde do botão 'Enviar pedido pelo WhatsApp' */
 }
-
-
