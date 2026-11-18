@@ -263,6 +263,21 @@ header{background:var(--hdr);border-bottom:1px solid rgba(34,27,28,.07)}
 .tr.rg input{grid-column:1/-1;width:100%;accent-color:var(--wine)}.tr output{color:#7a6f69}
 .tbt{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}.tbt button:last-child{color:#7a6f69}
 .tp details{margin-top:10px}.tp summary{cursor:pointer;color:#7a6f69}.tp textarea{width:100%;margin-top:6px;font:12px/1.4 ui-monospace,monospace;border:1px solid rgba(34,27,28,.2);border-radius:8px;padding:8px;resize:vertical;background:#faf7f3;color:#221b1c}
+/* botões modernos, animações, gestos */
+.wa,.buy .wa,.sh-ft .wa,.cf .wa{border-radius:999px;background:linear-gradient(180deg,color-mix(in srgb,var(--wine) 86%,#fff),var(--wine));color:#fff;font-weight:600;letter-spacing:.01em;box-shadow:0 12px 24px -12px color-mix(in srgb,var(--wine) 85%,transparent),inset 0 1px 0 rgba(255,255,255,.3);transition:transform .15s var(--ease),box-shadow .2s,filter .2s}
+.wa:hover{filter:brightness(1.06);transform:translateY(-1px)}.wa:active{transform:scale(.97);filter:none}
+.buy .wa{padding:calc(12*var(--u)) calc(22*var(--u))}.sh-ft .wa{padding:14px 26px}.cf .wa{padding:14px}
+.cartb.bump{animation:bump .55s var(--ease)}.cartb.bump span{animation:pop .55s var(--ease)}
+@keyframes bump{0%{transform:scale(1)}30%{transform:scale(1.2)}60%{transform:scale(.95)}100%{transform:scale(1)}}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.6)}100%{transform:scale(1)}}
+.fly{position:fixed;z-index:600;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:var(--wine);box-shadow:0 8px 18px -4px rgba(0,0,0,.35);pointer-events:none}
+.buy,.sh-top{touch-action:none}.sheet,.gt input{touch-action:manipulation}
+@media (max-width:820px){
+  .buy{padding-top:20px}.buy::before{content:"";position:absolute;top:7px;left:50%;width:38px;height:4px;margin-left:-19px;border-radius:2px;background:color-mix(in srgb,var(--txt) 25%,transparent)}
+  .sheet{opacity:1;transform:translateY(100%)}.sheet.open{transform:none}.sh-cn small{display:block;font-size:11px}
+  .sh-ft{flex-wrap:wrap;gap:8px 12px}.sh-ft>div{flex:1 1 auto;display:flex;align-items:baseline;gap:8px;white-space:nowrap}.sh-ft b{display:inline;font-size:16px}.sh-ft .wa{flex:1 1 100%;order:3;padding:13px;text-align:center}
+}
+@media (prefers-reduced-motion:reduce){.cartb.bump,.cartb.bump span{animation:none}}
 @media (prefers-reduced-motion:reduce){.coat,.wa{transition:none}}
 </style>
 <link rel="stylesheet" href="tema.css">
@@ -306,7 +321,7 @@ header{background:var(--hdr);border-bottom:1px solid rgba(34,27,28,.07)}
       <div class="sh-th" id="shth"></div>
     </div>
     <div class="sh-gr">
-      <p class="sh-cn">Cor: <b id="shc"></b> <small>Toque numa cor para ver a foto e digite as quantidades por tamanho.</small></p>
+      <p class="sh-cn">Cor: <b id="shc"></b> <small>Digite a quantidade ou toque 2× na célula para somar +1.</small></p>
       <div class="sh-tb" id="shtb"></div>
     </div>
   </div>
@@ -345,6 +360,7 @@ const ALL=[
 ];
 const SIZES=['P','M','G','GG'],FIRST=1;
 const MOSTRAR_PAINEL_TEMA=true; // false = esconde o botão de personalização (use ao publicar para os clientes)
+const DOIS_TOQUES_MAIS_UM=true; // na grade da tela cheia: toque duplo numa célula soma +1
 const MIN_PECAS=0;       // pedido mínimo em peças (0 = sem mínimo)
 // cada cor: [nome, tom, fotos (opcional), tamanhos esgotados só nessa cor (opcional)]
 let COATS=ALL.slice();ALL.forEach(k=>{k.z=k.z||SIZES;k.st={c:0,v:0,q:k.c.map(()=>k.z.map(()=>0))}});
@@ -407,7 +423,7 @@ buyEl.addEventListener('click',e=>{
   const i=shown,k=COATS[i],s=k.st;
   if(b.dataset.c!==undefined){s.c=+b.dataset.c;arcArt(i);reveal(i)}
   else if(b.dataset.more||b.id==='bx')openSheet();
-  else if(b.id==='badd'){if(tot(s.q))addCart(k);else openSheet()}
+  else if(b.id==='badd'){if(tot(s.q))addCart(k,b);else openSheet()}
 });
 const inModel=e=>{const r=am.getBoundingClientRect();return e.clientX>r.left&&e.clientX<r.right&&e.clientY>r.top&&e.clientY<r.bottom};
 function layoutModel(){
@@ -530,7 +546,27 @@ shimg.addEventListener('pointermove',e=>{
   const r=shimg.getBoundingClientRect();im.style.transformOrigin=`${(e.clientX-r.left)/r.width*100}% ${(e.clientY-r.top)/r.height*100}%`;
 });
 $('shx').addEventListener('click',closeSheet);
-$('shadd').addEventListener('click',()=>addCart(sheetK));
+function swipe(el,dir,fn){
+  let y0=null,x0=0,id=0;
+  el.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse')return;y0=e.clientY;x0=e.clientX;id=e.pointerId});
+  el.addEventListener('pointermove',e=>{
+    if(y0===null||e.pointerId!==id)return;const dy=(e.clientY-y0)*dir,dx=e.clientX-x0;
+    if(dy>40&&Math.abs(dx)<dy){y0=null;fn()}
+  });
+  ['pointerup','pointercancel'].forEach(t=>el.addEventListener(t,()=>{y0=null}));
+}
+swipe(buyEl,-1,()=>openSheet());               // arrastar o card do rodapé para cima
+swipe(document.querySelector('.sh-top'),1,()=>closeSheet());   // arrastar o topo da tela cheia para baixo
+let lastTap={t:0,el:null};
+shtb.addEventListener('pointerup',e=>{
+  const t=e.target;if(!DOIS_TOQUES_MAIS_UM||t.tagName!=='INPUT'||t.dataset.j===undefined)return;
+  const now=performance.now();
+  if(lastTap.el===t&&now-lastTap.t<350){
+    lastTap={t:0,el:null};const v=clamp((parseInt(t.value)||0)+1,0,999);
+    t.value=v;sheetK.st.q[+t.dataset.ci][+t.dataset.j]=v;updTotals();
+  }else lastTap={t:now,el:t};
+});
+$('shadd').addEventListener('click',e=>{if(addCart(sheetK,e.currentTarget))closeSheet()});
 $('shvc').addEventListener('click',openCart);
 addEventListener('keydown',e=>{if(e.key==='Escape'&&sheetOpen&&!cartOpen)closeSheet()});
 // ===== Carrinho (pedido de atacado) =====
@@ -539,12 +575,20 @@ const find=n=>ALL.find(k=>k.n===n);
 function saveCart(){try{localStorage.setItem(KEY,JSON.stringify(cart))}catch(e){}}
 function loadCart(){try{cart=(JSON.parse(localStorage.getItem(KEY))||[]).filter(it=>find(it.n)&&find(it.n).c[it.ci]&&Array.isArray(it.q)&&it.q.length===find(it.n).z.length)}catch(e){cart=[]}}
 function toast(t){const e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove('on'),2200)}
-function addCart(k){
-  const s=k.st;if(!tot(s.q)){toast('Escolha ao menos 1 peça');return}
+function flyToCart(from){
+  const cb=$('cartb'),bump=()=>{cb.classList.remove('bump');void cb.offsetWidth;cb.classList.add('bump')};
+  if(!from||calm){bump();return}
+  const a=from.getBoundingClientRect(),b=cb.getBoundingClientRect(),x0=a.left+a.width/2,y0=a.top+a.height/2,dx=b.left+b.width/2-x0,dy=b.top+b.height/2-y0;
+  const d=document.createElement('i');d.className='fly';d.style.left=x0+'px';d.style.top=y0+'px';document.body.append(d);
+  d.animate([{transform:'translate(0,0) scale(1)',opacity:1},{transform:`translate(${dx*.5}px,${dy*.5-40}px) scale(.8)`,opacity:1,offset:.45},{transform:`translate(${dx}px,${dy}px) scale(.35)`,opacity:.85}],{duration:650,easing:'cubic-bezier(.45,0,.25,1)'}).onfinish=()=>{d.remove();bump()};
+}
+function addCart(k,from){
+  const s=k.st;if(!tot(s.q)){toast('Escolha ao menos 1 peça');return false}
   let n=0;
   k.c.forEach((c,ci)=>{const row=s.q[ci];if(!sum(row))return;n+=sum(row);const ex=cart.find(it=>it.n===k.n&&it.ci===ci);if(ex)ex.q=ex.q.map((v,j)=>v+row[j]);else cart.push({n:k.n,ci,q:row.slice()})});
   s.q=k.c.map(()=>k.z.map(()=>0));syncQ(k);saveCart();renderCart();toast(`${k.n}: ${n} ${n==1?'peça':'peças'} no carrinho`);
   if(sheetOpen&&sheetK===k)renderGrid();
+  flyToCart(from);return true;
 }
 function msg(tp,tv){
   const L=cart.map(it=>{const k=find(it.n),pc=sum(it.q),g=k.z.map((z,j)=>it.q[j]?`${z}×${it.q[j]}`:'').filter(Boolean).join(', ');
